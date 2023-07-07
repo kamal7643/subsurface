@@ -91,6 +91,76 @@ static float z_far = 15.0f;
 static float fov_y = PI / 4.0f;
 static float aspect_ratio = 1.0f;
 
+GLuint fbo[5];
+GLuint tex[6];
+
+void checkFrameBufferStatus()
+{
+    GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (status != GL_FRAMEBUFFER_COMPLETE)
+    {
+        switch (status)
+        {
+            case GL_FRAMEBUFFER_UNDEFINED:
+                LOGE("Framebuffer error: GL_FRAMEBUFFER_UNDEFINED");
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+                LOGE("Framebuffer error: GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT");
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+                LOGE("Framebuffer error: GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT");
+                break;
+            case GL_FRAMEBUFFER_UNSUPPORTED:
+                LOGE("Framebuffer error: GL_FRAMEBUFFER_UNSUPPORTED");
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
+                LOGE("Framebuffer error: GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE");
+                break;
+            default:
+                LOGE("Framebuffer error: Unknown error");
+                break;
+        }
+    }
+}
+
+void setup_frame_buffers(){
+    for(unsigned  int i =0; i<5; i++){
+        glGenFramebuffers(1, &fbo[i]);
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo[i]);
+
+
+        glGenTextures(1, &tex[i]);
+        glBindTexture(GL_TEXTURE_2D, tex[i]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, window_width, window_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex[i], 0);
+
+        checkFrameBufferStatus();
+
+    }
+
+//    glBindFramebuffer(GL_FRAMEBUFFER, fbo[1]);
+//    glGenTextures(1, &tex[5]);
+//    glBindTexture(GL_TEXTURE_2D, tex[5]);
+//    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, window_width, window_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+//
+//    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, tex[5], 0);
+//
+//    checkFrameBufferStatus();
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+}
+
+void delete_frame_buffers(){
+    for(int i=0; i<5; i++)glDeleteFramebuffers(1, &fbo[i]);
+    for(int i=0; i<6; i++)glDeleteTextures(1, &tex[i]);
+}
+
 bool init_app(int width, int height)
 {
     window_width  = width;
@@ -125,6 +195,8 @@ bool init_app(int width, int height)
 
     mat_projection = perspective(fov_y, aspect_ratio, z_near, z_far);
 
+    setup_frame_buffers();
+
     return true;
 }
 
@@ -135,6 +207,7 @@ void free_app()
     shader_prepass.dispose();
     shader_scattering.dispose();
     shader_opaque.dispose();
+    delete_frame_buffers();
 }
 
 void update_app(float dt)
@@ -259,56 +332,13 @@ void render_pass_resolve()
     glDrawElements(GL_TRIANGLES, quad.num_indices, GL_UNSIGNED_INT, 0);
 }
 
-void checkFrameBufferStatus()
-{
-    GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-    if (status != GL_FRAMEBUFFER_COMPLETE)
-    {
-        switch (status)
-        {
-            case GL_FRAMEBUFFER_UNDEFINED:
-                LOGE("Framebuffer error: GL_FRAMEBUFFER_UNDEFINED");
-                break;
-            case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
-                LOGE("Framebuffer error: GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT");
-                break;
-            case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
-                LOGE("Framebuffer error: GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT");
-                break;
-            case GL_FRAMEBUFFER_UNSUPPORTED:
-                LOGE("Framebuffer error: GL_FRAMEBUFFER_UNSUPPORTED");
-                break;
-            case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
-                LOGE("Framebuffer error: GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE");
-                break;
-            default:
-                LOGE("Framebuffer error: Unknown error");
-                break;
-        }
-    }
-}
+
 
 
 void render_app(float dt)
 {
-    GLuint fbo1;
-    glGenFramebuffers(1, &fbo1);
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo1);
 
-    GLuint texture1;
-    glGenTextures(1, &texture1);
-    glBindTexture(GL_TEXTURE_2D, texture1);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, window_width, window_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture1, 0);
-
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        __android_log_write(ANDROID_LOG_INFO, "frame buffer 1", "error");
-        // Handle framebuffer creation failure
-    }
-
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo[0]);
     // Clearing all buffers at the beginning can lead to better performance
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_STENCIL_TEST);
@@ -331,18 +361,9 @@ void render_app(float dt)
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    GLuint fbo2;
-    glGenFramebuffers(1, &fbo2);
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo2);
 
-    GLuint texture2;
-    glGenTextures(1, &texture2);
-    glBindTexture(GL_TEXTURE_2D, texture2);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, window_width, window_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo[1]);
 
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture2, 0);
 
     GLuint texture21;
     glGenTextures(1, &texture21);
@@ -363,7 +384,7 @@ void render_app(float dt)
         // Handle framebuffer creation failure
     }
     // In this pass we render the _closest_ object's material properties
-    // to the local storage, and its ID to the stencil buffer. The ID will 
+    // to the local storage, and its ID to the stencil buffer. The ID will
     // be used for the following pass, where we compute the thickness.
     cull(false);
     use_shader(shader_prepass);
@@ -371,26 +392,10 @@ void render_app(float dt)
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    GLuint fbo3;
-    glGenFramebuffers(1, &fbo3);
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo3);
-
-    GLuint texture3;
-    glGenTextures(1, &texture3);
-    glBindTexture(GL_TEXTURE_2D, texture3);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, window_width, window_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture3, 0);
-
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        __android_log_write(ANDROID_LOG_INFO, "frame buffer 3", "error");
-        // Handle framebuffer creation failure
-    }
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo[2]);
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture2);
+    glBindTexture(GL_TEXTURE_2D, tex[1]);
     GLuint textureLocation = glGetUniformLocation(shader_thickness.m_id, "u_Texture");
 
 
@@ -407,32 +412,16 @@ void render_app(float dt)
     render_pass_thickness(true);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    GLuint fbo4;
-    glGenFramebuffers(1, &fbo4);
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo4);
-
-    GLuint texture4;
-    glGenTextures(1, &texture4);
-    glBindTexture(GL_TEXTURE_2D, texture4);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, window_width, window_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture4, 0);
-
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        __android_log_write(ANDROID_LOG_INFO, "frame buffer 4", "error");
-        // Handle framebuffer creation failure
-    }
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo[3]);
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture1);
+    glBindTexture(GL_TEXTURE_2D, tex[0]);
 
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, texture2);
+    glBindTexture(GL_TEXTURE_2D, tex[1]);
 
     glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, texture3);
+    glBindTexture(GL_TEXTURE_2D, tex[2]);
 
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, texture21);
@@ -459,25 +448,9 @@ void render_app(float dt)
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
-    GLuint fbo5;
-    glGenFramebuffers(1, &fbo5);
-    glBindFramebuffer(GL_FRAMEBUFFER, fbo5);
-
-    GLuint texture5;
-    glGenTextures(1, &texture5);
-    glBindTexture(GL_TEXTURE_2D, texture5);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, window_width, window_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture5, 0);
-
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        __android_log_write(ANDROID_LOG_INFO, "frame buffer 4", "error");
-        // Handle framebuffer creation failure
-    }
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo[4]);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture4);
+    glBindTexture(GL_TEXTURE_2D, tex[3]);
     textureLocation = glGetUniformLocation(shader_resolve.m_id, "u_Texture");
     // Write back lighting for _all_ the pixels!
     glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
@@ -492,7 +465,7 @@ void render_app(float dt)
 
     // These are no longer needed, so we don't bother writing back to framebuffer.
     //check each frame buffer
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo5);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo[4]);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     glBlitFramebuffer(0, 0, window_width, window_height, 0, 0, window_width, window_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
     GLenum to_invalidate[] = { GL_DEPTH, GL_STENCIL };
