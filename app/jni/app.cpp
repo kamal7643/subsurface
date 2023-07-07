@@ -478,7 +478,7 @@ void render_app(float dt)
     }
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture4);
-    textureLocation = glGetUniformLocation(shader_thickness.m_id, "u_Texture");
+    textureLocation = glGetUniformLocation(shader_resolve.m_id, "u_Texture");
     // Write back lighting for _all_ the pixels!
     glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
     glStencilFunc(GL_ALWAYS, 0, 0xFF);
