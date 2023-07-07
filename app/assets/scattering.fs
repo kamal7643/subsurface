@@ -87,7 +87,7 @@ void main()
 
     vec4 storagelighting = color1;
     vec2 minMaxDepth = vec2(color2.x, color3.x);
-    vec4 storagealbedo =vec4(0.7, 0.4, 0.2, color2.y);//color4;// something is wrong
+    vec4 storagealbedo =color4;//vec4(0.7, 0.4, 0.2, color2.y);//color4;// something is wrong
      vec2 normalXY = vec2(color2.zw );
 
     // privious code 

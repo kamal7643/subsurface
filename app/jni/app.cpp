@@ -35,39 +35,39 @@
 //#define GL_SHADER_PIXEL_LOCAL_STORAGE_EXT 0x8F64
 //#endif
 
-int 
-    window_width,
-    window_height;
+int
+        window_width,
+        window_height;
 
 Shader
-    shader_prepass,
-    shader_thickness,
-    shader_scattering,
-    shader_resolve,
-    shader_opaque;
+        shader_prepass,
+        shader_thickness,
+        shader_scattering,
+        shader_resolve,
+        shader_opaque;
 
-mat4 
-    mat_projection,
-    mat_view;
+mat4
+        mat_projection,
+        mat_view;
 
 Mesh quad, cube, teapot, sphere;
 
 const int num_lights = 2;
 vec3 light_pos[num_lights] = {
-    vec3(0.0), vec3(0.0)
+        vec3(0.0), vec3(0.0)
 };
 
 vec3 light_color[num_lights] = {
-    vec3(0.2, 0.8, 0.9),
-    vec3(1.0, 0.4, 0.2)
+        vec3(0.2, 0.8, 0.9),
+        vec3(1.0, 0.4, 0.2)
 };
 
 float light_intensity[num_lights] = {
-    0.6f, 0.9f
+        0.6f, 0.9f
 };
 
 float light_radius[num_lights] = {
-    0.1f, 0.14f
+        0.1f, 0.14f
 };
 
 static float model_scale = 0.01f;
@@ -141,10 +141,10 @@ void update_app(float dt)
 {
     rot_y += 0.01f * delta_x * dt;
     rot_x += 0.01f * delta_y * dt;
-    mat_view = 
-        translate(0.0f, -0.2f, -zoom) *
-        rotateX(rot_x) *
-        rotateY(rot_y);
+    mat_view =
+            translate(0.0f, -0.2f, -zoom) *
+            rotateX(rot_x) *
+            rotateY(rot_y);
 
     float alpha = 0.5 + 0.5 * sin(get_elapsed_time() * 0.4);
     light_pos[0] = vec3(-1.0 + 2.0 * alpha, 0.0, 0.0);
@@ -352,7 +352,11 @@ void render_app(float dt)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, texture21, 0);
-    
+
+
+    // Set the list of draw buffers
+    GLenum drawBuffers[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1};
+    glDrawBuffers(2, drawBuffers);
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         __android_log_write(ANDROID_LOG_INFO, "frame buffer 2", "error");
@@ -366,7 +370,7 @@ void render_app(float dt)
     render_pass_thickness(false);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    
+
     GLuint fbo3;
     glGenFramebuffers(1, &fbo3);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo3);
@@ -388,7 +392,7 @@ void render_app(float dt)
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture2);
     GLuint textureLocation = glGetUniformLocation(shader_thickness.m_id, "u_Texture");
-    
+
 
 
 
@@ -427,8 +431,8 @@ void render_app(float dt)
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, texture2);
 
-     glActiveTexture(GL_TEXTURE2);
-     glBindTexture(GL_TEXTURE_2D, texture3);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, texture3);
 
     glActiveTexture(GL_TEXTURE3);
     glBindTexture(GL_TEXTURE_2D, texture21);
@@ -436,7 +440,7 @@ void render_app(float dt)
     GLuint loc1 = glGetUniformLocation(shader_scattering.m_id, "texture1");
     GLuint loc2 = glGetUniformLocation(shader_scattering.m_id, "texture2");
     GLuint loc3 = glGetUniformLocation(shader_scattering.m_id, "texture3");
-    GLuint loc4 = glGetUniformLocation(shader_scattering.m_id, "texture21");
+    GLuint loc4 = glGetUniformLocation(shader_scattering.m_id, "texture4");
 
     // Apply subsurface scattering and front-lighting to geometry
     // Translucent objects have an ID that is >= 1. We only want to
@@ -452,7 +456,7 @@ void render_app(float dt)
     glUniform1i(loc4, 3);
 
     render_pass_shading();
-    glBindFramebuffer(GL_FRAMEBUFFER, 0); 
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
     GLuint fbo5;
